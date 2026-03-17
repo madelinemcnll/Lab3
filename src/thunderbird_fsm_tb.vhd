@@ -57,27 +57,155 @@ end thunderbird_fsm_tb;
 architecture test_bench of thunderbird_fsm_tb is 
 	
 	component thunderbird_fsm is 
---	  port(
-		
---	  );
+	  port(
+        i_clk, i_reset  : in    std_logic;
+        i_left, i_right : in    std_logic;
+        o_lights_L      : out   std_logic_vector(2 downto 0);
+        o_lights_R      : out   std_logic_vector(2 downto 0)
+	  );
+	  
 	end component thunderbird_fsm;
 
 	-- test I/O signals
+	signal w_C : std_logic := '0';
+	signal w_reset : std_logic := '0';
+	signal w_clk : std_logic := '0';
 	
+    signal Q_next : std_logic_vector(7 downto 0) := "10000000";
+    signal Q : std_logic_vector(7 downto 0) := "10000000";
+    
+    --signal w_lights : std_logic_vector(7 downto 0) := "10000000";
+    signal w_left : std_logic := '0';
+    signal w_right : std_logic := '0';
+    
+    signal w_out_L : std_logic_vector(2 downto 0) := "000";
+    signal w_out_R : std_logic_vector(2 downto 0) := "000";
+    
 	-- constants
+	constant k_clk_period : time:= 1ns;
 	
 	
 begin
 	-- PORT MAPS ----------------------------------------
-	
+	-- Instantiate the Unit Under Test (UUT)
+   uut: thunderbird_fsm port map (
+          i_left => w_left,
+          i_right => w_right,
+          
+          i_reset => w_reset,
+          i_clk => w_clk,
+          
+          o_lights_R(2) => w_out_R(2),
+          o_lights_R(1) => w_out_R(1),
+          o_lights_R(0) => w_out_R(0),
+          
+          o_lights_L(2) => w_out_L(2),
+          o_lights_L(1) => w_out_L(1),
+          o_lights_L(0) => w_out_L(0)
+        );
 	-----------------------------------------------------
 	
 	-- PROCESSES ----------------------------------------	
     -- Clock process ------------------------------------
-    
+	clk_proc : process
+	begin        
+	    wait for k_clk_period/2;
+		w_clk <= '0';
+		w_clk <= '1';
+		wait for k_clk_period/2;
+	end process;
 	-----------------------------------------------------
 	
 	-- Test Plan Process --------------------------------
+	sim_proc : process
+	begin
+		w_reset <= '1';
+		wait for k_clk_period*1;
+		  assert w_out_R = "000" report "bad right" severity failure;
+		  assert w_out_L = "000" report "bad left" severity failure;
+		  
+	    w_reset <= '0';
+		wait for k_clk_period;
+		
+		--left turn- verifies correct sequence of lights without right input
+		w_left <= '1'; w_right <= '0'; wait for k_clk_period;
+          assert w_out_L = "001" report "should begin left sequence after 10ns" severity failure;
+          assert w_out_R = "000" report "no right lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_L = "011" report "should continue left sequence after 10ns" severity failure;
+          assert w_out_R = "000" report "no right lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_L = "111" report "should end left sequence after 10ns" severity failure;
+          assert w_out_R = "000" report "no right lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_L = "000" report "should revert to 000 after 10ns" severity failure;
+          assert w_out_R = "000" report "no right lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_L = "001" report "should continue to 001 after 10ns" severity failure;
+          assert w_out_R = "000" report "no right lights should be on" severity failure;
+		
+		--test turning right mid-sequence
+		w_left <= '0';w_right <= '1'; wait for k_clk_period;
+          assert w_out_L = "011" report "left sequence should continue" severity failure;
+          assert w_out_R = "000" report "no right lights should be on" severity failure;
+        wait for k_clk_period*2;
+          assert w_out_L = "000" report "left sequence should now be off" severity failure;
+          assert w_out_R = "001" report "right sequence should begin" severity failure;
+        
+		
+		--right turn - verifies correct sequence of lights, without left input
+		w_left <= '0'; w_right <= '1'; wait for k_clk_period;
+          assert w_out_R = "001" report "should begin right sequence after 10ns" severity failure;
+          assert w_out_L = "000" report "no left lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_R = "011" report "should continue right sequence after 10ns" severity failure;
+          assert w_out_L = "000" report "no left lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_R = "111" report "should end right sequence after 10ns" severity failure;
+          assert w_out_L = "000" report "no left lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_R = "000" report "should revert to 000 after 10ns" severity failure;
+          assert w_out_L = "000" report "no left lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_R = "001" report "should continue to 001 after 10ns" severity failure;
+          assert w_out_L = "000" report "no left lights should be on" severity failure;
+        
+        --test turning left mid-sequence- must wait for end of sequence
+		w_left <= '1';w_right <= '0'; wait for k_clk_period;
+          assert w_out_R = "011" report "right sequence should continue" severity failure;
+          assert w_out_L = "000" report "no left lights should be on" severity failure;
+        wait for k_clk_period*2;
+          assert w_out_R = "000" report "right sequence should now be off" severity failure;
+          assert w_out_L = "001" report "left sequence should begin" severity failure;
+        
+        --switch to hazards mid-sequence- must wait for end of sequence
+		w_left <= '1';w_right <= '1'; wait for k_clk_period;
+          assert w_out_R = "111" report "right sequence should continue" severity failure;
+          assert w_out_L = "000" report "no left lights should be on" severity failure;
+        wait for k_clk_period*2;
+          assert w_out_R = "111" report "hazards sequence should begin" severity failure;
+          assert w_out_L = "111" report "hazards sequence should begin" severity failure;
+        
+ 
+        
+		--hazards
+	    w_left <= '1';w_right <='1'; wait for k_clk_period;
+          assert w_out_L = "111" report "left lights should be on" severity failure;
+          assert w_out_R = "111" report "right lights should be on" severity failure;
+        wait for k_clk_period;
+          assert w_out_L = "000" report "left lights should be off" severity failure;
+          assert w_out_R = "000" report "right lights should be off" severity failure;
+        wait for k_clk_period;
+          assert w_out_L = "111" report "left lights should be on" severity failure;
+          assert w_out_R = "111" report "right lights should be on" severity failure;
+        --switch to off
+        w_left <= '0'; w_right <= '0';
+        wait for k_clk_period; wait for k_clk_period;
+          assert w_out_L = "000" report "should stay at 000 after 20ns" severity failure;
+          assert w_out_R = "000" report "should stay at 000 after 20ns" severity failure;
+	    
+	    wait;
+	end process;
 	
 	-----------------------------------------------------	
 	
