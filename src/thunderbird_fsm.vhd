@@ -105,12 +105,12 @@ begin
 
 	-- CONCURRENT STATEMENTS --------------------------------------------------------	
     --Next State Eqs
-    Q_next(7) <= (Q(7) and not i_left and not i_right) or Q(6);
+    Q_next(7) <= (Q(7) and not i_left and not i_right) or Q(6) or Q(3) or Q(0);
     Q_next(6) <= (Q(7) and  i_left and  i_right);
-    Q_next(5) <= (Q(7) and not i_left and i_right) or Q(3);
+    Q_next(5) <= (Q(7) and not i_left and i_right);
     Q_next(4) <= Q(5);
     Q_next(3) <= Q(4);
-    Q_next(2) <= (Q(7) and i_left and not i_right) or Q(0);
+    Q_next(2) <= (Q(7) and i_left and not i_right);
     Q_next(1) <= Q(2);
     Q_next(0) <= Q(1);
     
@@ -124,7 +124,6 @@ begin
     o_lights_R(0) <= Q(6) or Q(3) or Q(4) or Q(5);
 
     ---------------------------------------------------------------------------------
-	
 	
 	
 	-- PROCESSES --------------------------------------------------------------------

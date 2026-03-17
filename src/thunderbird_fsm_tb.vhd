@@ -82,7 +82,7 @@ architecture test_bench of thunderbird_fsm_tb is
     signal w_out_R : std_logic_vector(2 downto 0) := "000";
     
 	-- constants
-	constant k_clk_period : time:= 1ns;
+	constant k_clk_period : time:= 1 ns;
 	
 	
 begin
